@@ -549,6 +549,20 @@
           font-size: 12px;
           font-weight: bold;
       }
+
+      /* Header Scroll Transitions */
+      #logo-container {
+          transition: all 0.3s ease;
+      }
+      
+      #scrolled-nav {
+          transition: all 0.3s ease;
+      }
+      
+      /* Ensure proper z-index for header */
+      #main-header {
+          z-index: 50;
+      }
     </style>
     <style>
       /* ========= Vice City scoped theme (collections only) ========= */
@@ -776,7 +790,7 @@
                 <a href="contact.html" class="px-4 py-2 border-b-2 border-transparent text-white hover:border-[#00ffff] hover:text-[#00ffff] transition-all">Contact Us</a>
             </nav>
         </div>
-        <div id="scrolled-nav" class="hidden justify-between items-center px-6 opacity-0">
+        <div id="scrolled-nav" class="hidden justify-between items-center px-6 opacity-0 transition-all duration-300">
             <a href="#" class="flex items-center space-x-2">
                 <div class="w-14 h-14 rounded-full flex items-center justify-center relative overflow-hidden">
                     <img src="https://heemsbd.com/assets/more/heeem.jpg" alt="HEEMS Logo" class="h-25 w-10 object-contain main-logo transition-opacity duration-300 absolute inset-0 m-auto" />
@@ -1154,42 +1168,94 @@
 
         // GSAP ScrollTrigger for header
         gsap.registerPlugin(ScrollTrigger);
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        
+        // Wait for DOM to be fully loaded
+        setTimeout(() => {
             const centerLogo = document.getElementById("logo-container");
             const scrolledNav = document.getElementById("scrolled-nav");
-            ScrollTrigger.create({
-                trigger: "body",
-                start: "top top",
-                end: "+=150",
-                scrub: true,
-                onEnter: () => {
-                    gsap.to(centerLogo, {
-                        opacity: 0,
-                        y: -50,
-                        duration: 0.4,
-                        onComplete: () => {
-                            centerLogo.style.display = "none";
-                            scrolledNav.classList.remove("hidden");
-                            scrolledNav.classList.add("flex");
-                            gsap.to(scrolledNav, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" });
-                        }
-                    });
-                },
-                onLeaveBack: () => {
-                    gsap.to(scrolledNav, {
-                        opacity: 0,
-                        duration: 0.3,
-                        onComplete: () => {
-                            scrolledNav.classList.add("hidden");
-                            scrolledNav.classList.remove("flex");
-                            centerLogo.style.display = "flex";
-                            gsap.to(centerLogo, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" });
-                        }
-                    });
-                }
-            });
+            
+            if (centerLogo && scrolledNav) {
+                // Set initial state
+                scrolledNav.style.opacity = "0";
+                scrolledNav.style.display = "none";
+                
+                ScrollTrigger.create({
+                    trigger: "body",
+                    start: "top top",
+                    end: "+=100",
+                    scrub: false,
+                    onEnter: () => {
+                        // Hide center logo
+                        gsap.to(centerLogo, {
+                            opacity: 0,
+                            y: -30,
+                            duration: 0.3,
+                            ease: "power2.out",
+                            onComplete: () => {
+                                centerLogo.style.display = "none";
+                            }
+                        });
+                        
+                        // Show scrolled nav
+                        scrolledNav.style.display = "flex";
+                        gsap.fromTo(scrolledNav, 
+                            { opacity: 0, y: -20 },
+                            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
+                        );
+                    },
+                    onLeaveBack: () => {
+                        // Hide scrolled nav
+                        gsap.to(scrolledNav, {
+                            opacity: 0,
+                            y: -20,
+                            duration: 0.3,
+                            ease: "power2.out",
+                            onComplete: () => {
+                                scrolledNav.style.display = "none";
+                            }
+                        });
+                        
+                        // Show center logo
+                        centerLogo.style.display = "flex";
+                        gsap.fromTo(centerLogo,
+                            { opacity: 0, y: -30 },
+                            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
+                        );
+                    }
+                });
+            }
+        }, 100);
 
-            const mainLogo = document.querySelector('.main-logo');
+        // Fallback scroll event listener
+        let isScrolled = false;
+        window.addEventListener('scroll', function() {
+            const scrollY = window.scrollY;
+            const centerLogo = document.getElementById("logo-container");
+            const scrolledNav = document.getElementById("scrolled-nav");
+            
+            // Debug log (remove in production)
+            console.log('Scroll Y:', scrollY, 'isScrolled:', isScrolled);
+            
+            if (scrollY > 100 && !isScrolled) {
+                isScrolled = true;
+                if (centerLogo && scrolledNav) {
+                    console.log('Switching to scrolled nav');
+                    centerLogo.style.display = "none";
+                    scrolledNav.style.display = "flex";
+                    scrolledNav.style.opacity = "1";
+                }
+            } else if (scrollY <= 100 && isScrolled) {
+                isScrolled = false;
+                if (centerLogo && scrolledNav) {
+                    console.log('Switching to center logo');
+                    scrolledNav.style.display = "none";
+                    scrolledNav.style.opacity = "0";
+                    centerLogo.style.display = "flex";
+                }
+            }
+        });
+
+        const mainLogo = document.querySelector('.main-logo');
             const hoverLogo = document.querySelector('.hover-logo');
             if (mainLogo && hoverLogo) {
                 mainLogo.addEventListener('mouseenter', () => {
