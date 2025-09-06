@@ -552,11 +552,16 @@
 
       /* Header Scroll Transitions */
       #logo-container {
-          transition: all 0.3s ease;
+          transition: opacity 0.3s ease, transform 0.3s ease;
       }
       
       #scrolled-nav {
-          transition: all 0.3s ease;
+          transition: opacity 0.3s ease, transform 0.3s ease;
+          transform: translateY(-10px);
+      }
+      
+      #scrolled-nav.show {
+          transform: translateY(0);
       }
       
       /* Ensure proper z-index for header */
@@ -1088,13 +1093,43 @@
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         // Mobile Menu Toggle
-        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
-        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-        const hamburger = document.querySelector('.hamburger');
-        const mobileCloseBtn = document.getElementById('mobile-close-btn');
+        function initMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+            const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+            const mobileCloseBtn = document.getElementById('mobile-close-btn');
 
-        if (mobileMenuBtn) {
+            if (!mobileMenuBtn || !mobileMenuOverlay) {
+                console.error("Mobile menu elements not found");
+                return;
+            }
+
+            function openMobileMenu() {
+                mobileMenuOverlay.classList.add('active');
+                mobileMenuBtn.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                // Animate menu items
+                mobileNavItems.forEach((item, index) => {
+                    const delay = parseFloat(item.getAttribute('data-delay')) || 0;
+                    setTimeout(() => {
+                        item.classList.add('active');
+                    }, delay * 1000);
+                });
+            }
+
+            function closeMobileMenu() {
+                mobileMenuOverlay.classList.remove('active');
+                mobileMenuBtn.classList.remove('active');
+                document.body.style.overflow = '';
+
+                // Remove active class from menu items
+                mobileNavItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+            }
+
+            // Event listeners
             mobileMenuBtn.addEventListener('click', function() {
                 const isActive = mobileMenuOverlay.classList.contains('active');
                 if (isActive) {
@@ -1103,157 +1138,113 @@
                     openMobileMenu();
                 }
             });
-        }
 
-        if (mobileCloseBtn) {
-            mobileCloseBtn.addEventListener('click', closeMobileMenu);
-        }
-
-        mobileNavItems.forEach(item => {
-            const link = item.querySelector('a');
-            if (link) {
-                link.addEventListener('click', closeMobileMenu);
+            if (mobileCloseBtn) {
+                mobileCloseBtn.addEventListener('click', closeMobileMenu);
             }
-        });
 
-        mobileMenuOverlay.addEventListener('click', function(e) {
-            if (e.target === mobileMenuOverlay) {
-                closeMobileMenu();
-            }
-        });
-
-        function openMobileMenu() {
-            mobileMenuOverlay.classList.add('active');
-            if (mobileMenuBtn) mobileMenuBtn.classList.add('active');
-            document.body.style.overflow = 'hidden';
-
-            mobileNavItems.forEach((item, index) => {
-                const delay = parseFloat(item.getAttribute('data-delay')) || 0;
-                setTimeout(() => {
-                    item.classList.add('active');
-                }, delay * 1000);
-            });
-        }
-
-        function closeMobileMenu() {
-            mobileMenuOverlay.classList.remove('active');
-            if (mobileMenuBtn) mobileMenuBtn.classList.remove('active');
-            document.body.style.overflow = '';
-
+            // Close menu when clicking on nav items
             mobileNavItems.forEach(item => {
-                item.classList.remove('active');
+                const link = item.querySelector('a');
+                if (link) {
+                    link.addEventListener('click', closeMobileMenu);
+                }
+            });
+
+            // Close menu when clicking overlay
+            mobileMenuOverlay.addEventListener('click', function(e) {
+                if (e.target === mobileMenuOverlay) {
+                    closeMobileMenu();
+                }
             });
         }
 
-        // Touch swipe support
-        let touchStartY = 0;
-        let touchEndY = 0;
+        // Initialize mobile menu
+        initMobileMenu();
 
-        mobileMenuOverlay.addEventListener('touchstart', function(e) {
-            touchStartY = e.changedTouches[0].screenY;
-        });
+        // Touch swipe support for mobile menu
+        function initTouchSwipe() {
+            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+            if (!mobileMenuOverlay) return;
 
-        mobileMenuOverlay.addEventListener('touchend', function(e) {
-            touchEndY = e.changedTouches[0].screenY;
-            handleSwipe();
-        });
+            let touchStartY = 0;
+            let touchEndY = 0;
 
-        function handleSwipe() {
-            const swipeThreshold = 50;
-            const swipeDistance = touchEndY - touchStartY;
-            if (swipeDistance > swipeThreshold) {
-                closeMobileMenu();
+            mobileMenuOverlay.addEventListener('touchstart', function(e) {
+                touchStartY = e.changedTouches[0].screenY;
+            });
+
+            mobileMenuOverlay.addEventListener('touchend', function(e) {
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipe();
+            });
+
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const swipeDistance = touchEndY - touchStartY;
+                if (swipeDistance > swipeThreshold) {
+                    // Close mobile menu
+                    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                    if (mobileMenuBtn) {
+                        mobileMenuBtn.click();
+                    }
+                }
             }
         }
 
-        // GSAP ScrollTrigger for header
-        gsap.registerPlugin(ScrollTrigger);
-        
-        // Wait for DOM to be fully loaded
-        setTimeout(() => {
-            const centerLogo = document.getElementById("logo-container");
-            const scrolledNav = document.getElementById("scrolled-nav");
-            
-            if (centerLogo && scrolledNav) {
-                // Set initial state
-                scrolledNav.style.opacity = "0";
-                scrolledNav.style.display = "none";
-                
-                ScrollTrigger.create({
-                    trigger: "body",
-                    start: "top top",
-                    end: "+=100",
-                    scrub: false,
-                    onEnter: () => {
-                        // Hide center logo
-                        gsap.to(centerLogo, {
-                            opacity: 0,
-                            y: -30,
-                            duration: 0.3,
-                            ease: "power2.out",
-                            onComplete: () => {
-                                centerLogo.style.display = "none";
-                            }
-                        });
-                        
-                        // Show scrolled nav
-                        scrolledNav.style.display = "flex";
-                        gsap.fromTo(scrolledNav, 
-                            { opacity: 0, y: -20 },
-                            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
-                        );
-                    },
-                    onLeaveBack: () => {
-                        // Hide scrolled nav
-                        gsap.to(scrolledNav, {
-                            opacity: 0,
-                            y: -20,
-                            duration: 0.3,
-                            ease: "power2.out",
-                            onComplete: () => {
-                                scrolledNav.style.display = "none";
-                            }
-                        });
-                        
-                        // Show center logo
-                        centerLogo.style.display = "flex";
-                        gsap.fromTo(centerLogo,
-                            { opacity: 0, y: -30 },
-                            { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
-                        );
-                    }
-                });
-            }
-        }, 100);
+        // Initialize touch swipe
+        initTouchSwipe();
 
-        // Fallback scroll event listener
-        let isScrolled = false;
-        window.addEventListener('scroll', function() {
-            const scrollY = window.scrollY;
+        // Navigation Scroll Effect
+        function initNavigationScroll() {
             const centerLogo = document.getElementById("logo-container");
             const scrolledNav = document.getElementById("scrolled-nav");
             
-            // Debug log (remove in production)
-            console.log('Scroll Y:', scrollY, 'isScrolled:', isScrolled);
+            if (!centerLogo || !scrolledNav) {
+                console.error("Navigation elements not found");
+                return;
+            }
+
+            let isScrolled = false;
             
-            if (scrollY > 100 && !isScrolled) {
-                isScrolled = true;
-                if (centerLogo && scrolledNav) {
-                    console.log('Switching to scrolled nav');
+            function handleScroll() {
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (scrollY > 80 && !isScrolled) {
+                    // Show scrolled navigation
+                    isScrolled = true;
                     centerLogo.style.display = "none";
                     scrolledNav.style.display = "flex";
                     scrolledNav.style.opacity = "1";
-                }
-            } else if (scrollY <= 100 && isScrolled) {
-                isScrolled = false;
-                if (centerLogo && scrolledNav) {
-                    console.log('Switching to center logo');
+                    scrolledNav.classList.add("show");
+                } else if (scrollY <= 80 && isScrolled) {
+                    // Show center logo
+                    isScrolled = false;
                     scrolledNav.style.display = "none";
                     scrolledNav.style.opacity = "0";
+                    scrolledNav.classList.remove("show");
                     centerLogo.style.display = "flex";
                 }
             }
-        });
+            
+            // Initial call
+            handleScroll();
+            
+            // Add scroll listener with throttling for better performance
+            let ticking = false;
+            function requestTick() {
+                if (!ticking) {
+                    requestAnimationFrame(handleScroll);
+                    ticking = true;
+                    setTimeout(() => { ticking = false; }, 16);
+                }
+            }
+            
+            window.addEventListener('scroll', requestTick, { passive: true });
+        }
+        
+        // Initialize navigation scroll effect
+        initNavigationScroll();
 
         const mainLogo = document.querySelector('.main-logo');
             const hoverLogo = document.querySelector('.hover-logo');
